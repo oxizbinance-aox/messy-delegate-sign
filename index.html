@@ -21,13 +21,13 @@
 <body>
 <div class="card">
   <h1>Sign make.fun payout delegation</h1>
-  <p>This page only asks your wallet to <b>sign a message</b>. No transaction, no funds move. Signing pins this make.fun account's payouts to the box wallet <code>NTG4jFE2zse33iBraAunsBa7Xhtg9HFbEXQHH4YJhTg</code> until that wallet releases the pin. Phantom shows you the exact message before you approve — check it matches below.</p>
+  <p>This page only asks your wallet to <b>sign a message</b>. No transaction, no funds move. Signing pins this make.fun account's payouts to the box wallet <code>NTG4jFE2zse33iBraAunsBa7Xhtg9HFbEXQHH4YJhTg</code> until that wallet releases the pin. Your wallet shows you the exact message before you approve — check it matches below.</p>
 
   <h2>Message to sign</h2>
   <pre id="msg"></pre>
 
-  <p id="provider">Checking for Phantom… (open this page inside the Phantom app's browser)</p>
-  <button id="connect">1. Connect Phantom</button>
+  <p id="provider">Checking for a wallet… (open this page inside your wallet app's browser — Jupiter dApp browser, or Phantom)</p>
+  <button id="connect">1. Connect wallet</button>
   <p id="addr"></p>
   <button id="sign" disabled>2. Sign message</button>
 
@@ -71,15 +71,17 @@ let provider = null;
 let lastSigB58 = '';
 
 function getProvider() {
-  if ('phantom' in window) return window.phantom?.solana;
-  if (window.solana && window.solana.isPhantom) return window.solana;
+  // Any injected Solana provider works: Jupiter dApp browser injects window.solana,
+  // Phantom injects window.solana (isPhantom) or window.phantom.solana.
+  if (window.solana && typeof window.solana.connect === 'function' && typeof window.solana.signMessage === 'function') return window.solana;
+  if (window.phantom && window.phantom.solana) return window.phantom.solana;
   return null;
 }
 provider = getProvider();
 if (provider) {
-  providerEl.textContent = 'Phantom detected.';
+  providerEl.textContent = 'Wallet detected.';
 } else {
-  providerEl.innerHTML = '<span class="warn">Phantom not detected.</span> Open this page inside the Phantom app (browser tab) on your phone.';
+  providerEl.innerHTML = '<span class="warn">Wallet not detected.</span> Open this page inside your wallet app\'s browser (Jupiter: dApp browser; Phantom: built-in browser) — not in Chrome/Safari.';
   connectBtn.disabled = true;
 }
 connectBtn.addEventListener('click', async () => {
