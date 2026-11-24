@@ -26,8 +26,12 @@
   <h2>Message to sign</h2>
   <pre id="msg"></pre>
 
-  <p id="provider">Checking for a wallet… (open this page inside your wallet app's browser — Jupiter dApp browser, or Phantom)</p>
+  <p id="provider">Mencari wallet…</p>
   <button id="connect">1. Connect wallet</button>
+  <div id="linkRow" style="display:none; margin-top:12px;">
+    <pre id="pageLink">https://oxizbinance-aox.github.io/messy-delegate-sign/</pre>
+    <button id="copyLink" type="button">Copy link halaman ini</button>
+  </div>
   <p id="addr"></p>
   <button id="sign" disabled>2. Sign message</button>
 
@@ -67,6 +71,8 @@ const signBtn = document.getElementById('sign');
 const addrEl = document.getElementById('addr');
 const sigEl = document.getElementById('sig');
 const copyBtn = document.getElementById('copy');
+const copyLinkBtn = document.getElementById('copyLink');
+const linkRow = document.getElementById('linkRow');
 let provider = null;
 let lastSigB58 = '';
 
@@ -77,14 +83,31 @@ function getProvider() {
   if (window.phantom && window.phantom.solana) return window.phantom.solana;
   return null;
 }
-provider = getProvider();
-if (provider) {
-  providerEl.textContent = 'Wallet detected.';
-} else {
-  providerEl.innerHTML = '<span class="warn">Wallet not detected.</span> Open this page inside your wallet app\'s browser (Jupiter: dApp browser; Phantom: built-in browser) — not in Chrome/Safari.';
-  connectBtn.disabled = true;
+function setNoProvider() {
+  providerEl.innerHTML = '<span class="warn">Wallet tidak terdeteksi di browser ini.</span> Link ini harus dibuka di dalam <b>dApp browser aplikasi Jupiter</b> (bukan Chrome/Safari): buka aplikasi Jupiter &rarr; tab <b>Portfolio</b> &rarr; tap ikon <b>browser</b> di bar atas &rarr; paste link di bawah ini.';
+  linkRow.style.display = 'block';
 }
+// Injection can arrive after page load, so poll for a while instead of checking once.
+let tries = 0;
+function pollProvider() {
+  provider = getProvider();
+  if (provider) {
+    providerEl.textContent = 'Wallet terdeteksi. Tap Connect wallet.';
+    linkRow.style.display = 'none';
+    return;
+  }
+  tries++;
+  if (tries < 20) { setTimeout(pollProvider, 500); }
+  else { setNoProvider(); }
+}
+pollProvider();
+copyLinkBtn.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText('https://oxizbinance-aox.github.io/messy-delegate-sign/'); copyLinkBtn.textContent = 'Link copied!'; }
+  catch (e) { copyLinkBtn.textContent = 'Copy gagal — salin manual dari kotak di atas'; }
+});
 connectBtn.addEventListener('click', async () => {
+  if (!provider) provider = getProvider();
+  if (!provider) { setNoProvider(); addrEl.textContent = ''; return; }
   try {
     const resp = await provider.connect();
     const addr = resp.publicKey.toString();
