@@ -21,7 +21,7 @@
 <body>
 <div class="card">
   <h1>Sign make.fun payout delegation</h1>
-  <p>This page only asks your wallet to <b>sign a message</b>. No transaction, no funds move. Signing pins this make.fun account's payouts to the box wallet <code>NTG4jFE2zse33iBraAunsBa7Xhtg9HFbEXQHH4YJhTg</code> until that wallet releases the pin. Your wallet shows you the exact message before you approve — check it matches below.</p>
+  <p>This page only asks your wallet to <b>sign a message</b>. No transaction, no funds move. Signing pins this make.fun account's payouts to AOX's own wallet <code>FMEjysKnBQkYGZ2ozNPsRd2TpBvpRh2RW8Hku1SGYenW</code> until that wallet releases the pin. Your wallet shows you the exact message before you approve — check it matches below.</p>
 
   <h2>Message to sign</h2>
   <pre id="msg"></pre>
@@ -39,11 +39,11 @@
   <h2>Signature (send this back to Kang Muse)</h2>
   <pre id="sig">—</pre>
   <button id="copy" disabled>Copy signature</button>
-  <p>After you send the signature, Kang Muse registers the pin with make.fun. Entries signed before the pin still pay the agent wallet; entries signed after it pay the box wallet.</p>
+  <p>After you send the signature, Kang Muse registers the pin with make.fun. Entries signed before the pin still pay the agent wallet; entries signed after it pay your wallet.</p>
 </div>
 <script>
-const MESSAGE = "make.fun delegation v1; Domain: make.fun; Payout: NTG4jFE2zse33iBraAunsBa7Xhtg9HFbEXQHH4YJhTg; Agent: FMEjysKnBQkYGZ2ozNPsRd2TpBvpRh2RW8Hku1SGYenW; Competitions: *; Nonce: cb61b79ea0e714d30b4966bd7857d104; Issued At: 2026-11-24T12:39:58.117Z; Expiration Time: 2027-02-22T12:39:58.117Z";
-const EXPECTED = "NTG4jFE2zse33iBraAunsBa7Xhtg9HFbEXQHH4YJhTg";
+const MESSAGE = "make.fun delegation v1; Domain: make.fun; Payout: FMEjysKnBQkYGZ2ozNPsRd2TpBvpRh2RW8Hku1SGYenW; Agent: EioGmzpwRf5qMYgwxQZXHvbSwYHz6cWEgQgrJSUhtBgT; Competitions: *; Nonce: 5957f3cbdda3c3c92ae9745d32958fbc; Issued At: 2026-11-24T13:14:47.399Z; Expiration Time: 2027-02-22T13:14:47.399Z";
+const EXPECTED = "FMEjysKnBQkYGZ2ozNPsRd2TpBvpRh2RW8Hku1SGYenW";
 document.getElementById('msg').textContent = MESSAGE;
 
 const ALPH = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -122,10 +122,10 @@ connectBtn.addEventListener('click', async () => {
     const resp = await provider.connect();
     const addr = resp.publicKey.toString();
     if (addr === EXPECTED) {
-      addrEl.innerHTML = '<span class="ok">Connected: ' + addr + ' — this IS the box wallet. Good, continue.</span>';
+      addrEl.innerHTML = '<span class="ok">Connected: ' + addr + ' — this IS your wallet. Good, continue.</span>';
       signBtn.disabled = false;
     } else {
-      addrEl.innerHTML = '<span class="warn">Connected: ' + addr + ' — this is NOT the box wallet. Switch to the box wallet (' + EXPECTED + ') in Phantom, then reconnect.</span>';
+      addrEl.innerHTML = '<span class="warn">Connected: ' + addr + ' — this is NOT your wallet FMEjysKn. Switch to that wallet (' + EXPECTED + ') in your wallet app, then reconnect.</span>';
     }
   } catch (e) {
     addrEl.textContent = 'Connect failed: ' + (e && e.message ? e.message : e);
