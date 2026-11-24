@@ -27,6 +27,7 @@
   <pre id="msg"></pre>
 
   <p id="provider">Mencari wallet…</p>
+  <p id="diag" style="font-size:12px;color:#888;"></p>
   <button id="connect">1. Connect wallet</button>
   <div id="linkRow" style="display:none; margin-top:12px;">
     <pre id="pageLink">https://oxizbinance-aox.github.io/messy-delegate-sign/</pre>
@@ -73,15 +74,23 @@ const sigEl = document.getElementById('sig');
 const copyBtn = document.getElementById('copy');
 const copyLinkBtn = document.getElementById('copyLink');
 const linkRow = document.getElementById('linkRow');
+const diagEl = document.getElementById('diag');
 let provider = null;
 let lastSigB58 = '';
 
 function getProvider() {
   // Any injected Solana provider works: Jupiter dApp browser injects window.solana,
   // Phantom injects window.solana (isPhantom) or window.phantom.solana.
-  if (window.solana && typeof window.solana.connect === 'function' && typeof window.solana.signMessage === 'function') return window.solana;
+  // Accept connect-only providers here; signMessage is checked at sign time.
+  if (window.solana && typeof window.solana.connect === 'function') return window.solana;
   if (window.phantom && window.phantom.solana) return window.phantom.solana;
   return null;
+}
+function diagText() {
+  const s = window.solana;
+  return 'diagnostik: window.solana=' + (s ? 'ada' : 'tidak') +
+    ' signMessage=' + (s && typeof s.signMessage === 'function' ? 'ada' : 'tidak') +
+    ' window.phantom=' + (window.phantom && window.phantom.solana ? 'ada' : 'tidak');
 }
 function setNoProvider() {
   providerEl.innerHTML = '<span class="warn">Wallet tidak terdeteksi di browser ini.</span> Link ini harus dibuka di dalam <b>dApp browser aplikasi Jupiter</b> (bukan Chrome/Safari): buka aplikasi Jupiter &rarr; tab <b>Portfolio</b> &rarr; tap ikon <b>browser</b> di bar atas &rarr; paste link di bawah ini.';
@@ -91,6 +100,7 @@ function setNoProvider() {
 let tries = 0;
 function pollProvider() {
   provider = getProvider();
+  diagEl.textContent = diagText();
   if (provider) {
     providerEl.textContent = 'Wallet terdeteksi. Tap Connect wallet.';
     linkRow.style.display = 'none';
@@ -122,6 +132,10 @@ connectBtn.addEventListener('click', async () => {
   }
 });
 signBtn.addEventListener('click', async () => {
+  if (typeof provider.signMessage !== 'function') {
+    sigEl.textContent = 'Wallet ini tidak menyediakan signMessage di browser ini. Coba buka halaman ini di browser bawaan aplikasi wallet lain (mis. Phantom), atau beri tahu Kang Muse isi baris diagnostik di atas.';
+    return;
+  }
   try {
     const { signature } = await provider.signMessage(new TextEncoder().encode(MESSAGE), 'utf8');
     lastSigB58 = toB58(signature);
