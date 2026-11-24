@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign make.fun payout delegation</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0d0d12; color: #eee; margin: 0; padding: 24px; }
+  .card { max-width: 640px; margin: 0 auto; background: #17171f; border: 1px solid #2a2a35; border-radius: 12px; padding: 24px; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  h2 { font-size: 15px; margin: 20px 0 8px; color: #ffb454; }
+  p { font-size: 14px; line-height: 1.5; color: #ccc; }
+  code { color: #ffb454; word-break: break-all; }
+  pre { background: #0d0d12; border: 1px solid #2a2a35; border-radius: 8px; padding: 12px; font-size: 12px; white-space: pre-wrap; word-break: break-all; color: #ddd; }
+  button { display: block; width: 100%; padding: 12px; margin-top: 10px; font-size: 15px; font-weight: 600; border: none; border-radius: 8px; background: #9945FF; color: #fff; cursor: pointer; }
+  button:disabled { background: #3a3a45; color: #888; cursor: not-allowed; }
+  .warn { color: #ff6b6b; font-weight: 600; }
+  .ok { color: #4ade80; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Sign make.fun payout delegation</h1>
+  <p>This page only asks your wallet to <b>sign a message</b>. No transaction, no funds move. Signing pins this make.fun account's payouts to the box wallet <code>NTG4jFE2zse33iBraAunsBa7Xhtg9HFbEXQHH4YJhTg</code> until that wallet releases the pin. Phantom shows you the exact message before you approve — check it matches below.</p>
+
+  <h2>Message to sign</h2>
+  <pre id="msg"></pre>
+
+  <p id="provider">Checking for Phantom… (open this page inside the Phantom app's browser)</p>
+  <button id="connect">1. Connect Phantom</button>
+  <p id="addr"></p>
+  <button id="sign" disabled>2. Sign message</button>
+
+  <h2>Signature (send this back to Kang Muse)</h2>
+  <pre id="sig">—</pre>
+  <button id="copy" disabled>Copy signature</button>
+  <p>After you send the signature, Kang Muse registers the pin with make.fun. Entries signed before the pin still pay the agent wallet; entries signed after it pay the box wallet.</p>
+</div>
+<script>
+const MESSAGE = "make.fun delegation v1; Domain: make.fun; Payout: NTG4jFE2zse33iBraAunsBa7Xhtg9HFbEXQHH4YJhTg; Agent: FMEjysKnBQkYGZ2ozNPsRd2TpBvpRh2RW8Hku1SGYenW; Competitions: *; Nonce: cb61b79ea0e714d30b4966bd7857d104; Issued At: 2026-11-24T12:39:58.117Z; Expiration Time: 2027-02-22T12:39:58.117Z";
+const EXPECTED = "NTG4jFE2zse33iBraAunsBa7Xhtg9HFbEXQHH4YJhTg";
+document.getElementById('msg').textContent = MESSAGE;
+
+const ALPH = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function toB58(bytes) {
+  let zeros = 0;
+  while (zeros < bytes.length && bytes[zeros] === 0) zeros++;
+  const digits = [0];
+  for (let i = 0; i < bytes.length; i++) {
+    let carry = bytes[i];
+    for (let j = 0; j < digits.length; j++) { carry += digits[j] << 8; digits[j] = carry % 58; carry = (carry / 58) | 0; }
+    while (carry > 0) { digits.push(carry % 58); carry = (carry / 58) | 0; }
+  }
+  let out = '1'.repeat(zeros);
+  for (let i = digits.length - 1; i >= 0; i--) out += ALPH[digits[i]];
+  return out;
+}
+function toB64(bytes) {
+  let s = '';
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+}
+
+const providerEl = document.getElementById('provider');
+const connectBtn = document.getElementById('connect');
+const signBtn = document.getElementById('sign');
+const addrEl = document.getElementById('addr');
+const sigEl = document.getElementById('sig');
+const copyBtn = document.getElementById('copy');
+let provider = null;
+let lastSigB58 = '';
+
+function getProvider() {
+  if ('phantom' in window) return window.phantom?.solana;
+  if (window.solana && window.solana.isPhantom) return window.solana;
+  return null;
+}
+provider = getProvider();
+if (provider) {
+  providerEl.textContent = 'Phantom detected.';
+} else {
+  providerEl.innerHTML = '<span class="warn">Phantom not detected.</span> Open this page inside the Phantom app (browser tab) on your phone.';
+  connectBtn.disabled = true;
+}
+connectBtn.addEventListener('click', async () => {
+  try {
+    const resp = await provider.connect();
+    const addr = resp.publicKey.toString();
+    if (addr === EXPECTED) {
+      addrEl.innerHTML = '<span class="ok">Connected: ' + addr + ' — this IS the box wallet. Good, continue.</span>';
+      signBtn.disabled = false;
+    } else {
+      addrEl.innerHTML = '<span class="warn">Connected: ' + addr + ' — this is NOT the box wallet. Switch to the box wallet (' + EXPECTED + ') in Phantom, then reconnect.</span>';
+    }
+  } catch (e) {
+    addrEl.textContent = 'Connect failed: ' + (e && e.message ? e.message : e);
+  }
+});
+signBtn.addEventListener('click', async () => {
+  try {
+    const { signature } = await provider.signMessage(new TextEncoder().encode(MESSAGE), 'utf8');
+    lastSigB58 = toB58(signature);
+    sigEl.textContent = 'base58:\n' + lastSigB58 + '\n\nbase64:\n' + toB64(signature);
+    copyBtn.disabled = false;
+  } catch (e) {
+    sigEl.textContent = 'Sign failed: ' + (e && e.message ? e.message : e);
+  }
+});
+copyBtn.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(lastSigB58); copyBtn.textContent = 'Copied!'; }
+  catch (e) { copyBtn.textContent = 'Copy failed — select the signature text manually'; }
+});
+</script>
+</body>
+</html>
